@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>captcha2text</title>
+</head>
+
+<body>
+    <p><input type="file" name="file" id="file" accept="image/*"><br>
+        <span>predict:</span> <strong id="predict"></strong></p>
+    <script>
+        const inputElement = document.getElementById("file");
+        const predictElement = document.getElementById("predict");
+        inputElement.addEventListener("change", async function (e) {
+            const files = e.target.files;
+            const file = files[0];
+            const formData = new FormData();
+            formData.append("file", file);
+            const response = await fetch("/", {
+                method: "POST",
+                body: formData,
+            });
+            const responseText = await response.text();
+            predictElement.innerText = responseText;
+        });
+    </script>
+</body>
+
+</html>

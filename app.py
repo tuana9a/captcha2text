@@ -1,52 +1,68 @@
 import io
+import os
+import sys
 import logging
 import datetime
+import werkzeug
+import ocr
+import configs
 
 from PIL import Image
-from ocr import captcha2text
-from flask import Flask, request
-from configs import AppConfig
-from werkzeug.utils import secure_filename
+from flask import Flask, request, render_template
 
 app = Flask(__name__, instance_relative_config=True)
 app.config.from_mapping(MAX_CONTENT_LENGTH=5 * 1024 * 1024)
-log = logging.getLogger("werkzeug")
-log.setLevel(logging.ERROR)
+werkzeug_logger = logging.getLogger("werkzeug")
+werkzeug_logger.setLevel(logging.ERROR)
+allowed_extensions = ["png", "jpg", "jpeg"]
 
 
 def is_allowed_extension(filename):
-    allowed_extensions = AppConfig["flask"]["allowed_extensions"]
     return "." in filename and filename.rsplit(".", 1)[1].lower() in allowed_extensions
 
 
 @app.route("/", methods=["GET"])
 def index():
-    return "hello world"
+    return render_template("index.html")
 
 
-@app.route("/api/captcha-to-text", methods=["POST"])
-def captcha_to_text():
+@app.route("/", methods=["POST"])
+def upload():
+    # check file exist
     if "file" not in request.files:
-        return "no file upload"
-
+        return "file not exist in request"
+    # get the file
     file = request.files["file"]
-
     if not file:
-        return "no file upload"
-
-    filename = secure_filename(file.filename)
-
+        return "file is empty"
+    # get file name
+    filename = werkzeug.utils.secure_filename(file.filename)
     if not is_allowed_extension(filename):
-        return "not allowed " + filename
-
+        return filename + " is not allowed"
+    # start process
     try:
         buffers = file.stream._file.getvalue()
         image = Image.open(io.BytesIO(buffers))
-        result = captcha2text.predict(img=image)
+        result = ocr.predictor.predict(img=image)
         return result
-
     except:
         pattern = "%Y-%m-%d %H:%M:%S" + " error when handle image"
         now = datetime.datetime.now().strftime(pattern)
         print(str(now))
         return "error"
+
+
+def main():
+    bind = configs.BIND
+    port = configs.PORT
+    app.run(host=bind, port=port, debug=False)
+
+
+if __name__ == "__main__":
+    try:
+        main()
+    except:
+        try:
+            sys.exit(0)
+        except SystemExit:
+            os._exit(0)

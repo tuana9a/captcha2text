@@ -1,4 +1,8 @@
-import yaml
+import os
+import dotenv
 
-file = open("resource/app.conf.yaml")
-AppConfig = yaml.load(file, Loader=yaml.FullLoader)
+dotenv.load_dotenv(dotenv.find_dotenv())
+
+PORT = os.getenv("PORT")
+BIND = os.getenv("BIND")
+DEVICE = os.getenv("DEVICE")

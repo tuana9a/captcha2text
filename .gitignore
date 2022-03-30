@@ -1,7 +1,3 @@
-# custom
-resource/
-*test*
-
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]
@@ -131,3 +127,7 @@ dmypy.json
 
 # Pyre type checker
 .pyre/
+
+# @tuana9a
+weights.pth
+*.local*
