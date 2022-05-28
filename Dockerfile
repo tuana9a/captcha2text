@@ -16,4 +16,4 @@ COPY templates/ templates/
 
 COPY app.py .
 
-CMD . .venv/bin/activate && gunicorn -w 4 -b $BIND:$PORT app:app
+CMD . .venv/bin/activate && gunicorn -w $WORKER_COUNT -b $BIND:$PORT app:app
