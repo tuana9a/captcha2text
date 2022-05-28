@@ -5,3 +5,4 @@ PyYAML==5.4.1
 torchvision==0.9.1
 vietocr==0.3.2
 python-dotenv==0.20.0
+gunicorn==20.1.0

@@ -1,14 +1,28 @@
 import io
 import os
 import sys
+import dotenv
 import logging
 import datetime
 import werkzeug
-import ocr
-import configs
+import yaml
+
+dotenv.load_dotenv(dotenv.find_dotenv())
+
+PORT = os.getenv("PORT") or 8080
+BIND = os.getenv("BIND") or "0.0.0.0"
+DEVICE = os.getenv("DEVICE") or "cpu"
+SECRET = os.getenv("SECRET")
 
 from PIL import Image
 from flask import Flask, request, render_template
+from vietocr.tool.config import Cfg
+from vietocr.tool.predictor import Predictor
+
+with open("./weights/config.yaml") as f:
+    predictor_config = Cfg(yaml.safe_load(f))
+    predictor_config["device"] = DEVICE
+    predictor = Predictor(predictor_config)
 
 app = Flask(__name__, instance_relative_config=True)
 app.config.from_mapping(MAX_CONTENT_LENGTH=5 * 1024 * 1024)
@@ -43,7 +57,7 @@ def upload():
     try:
         buffers = file.stream._file.getvalue()
         image = Image.open(io.BytesIO(buffers))
-        result = ocr.predictor.predict(img=image)
+        result = predictor.predict(img=image)
         return result
     except:
         pattern = "%Y-%m-%d %H:%M:%S" + " error when handle image"
@@ -53,9 +67,8 @@ def upload():
 
 
 def main():
-    bind = configs.BIND
-    port = configs.PORT
-    app.run(host=bind, port=port, debug=False)
+    print(f' * Listen http://{BIND}:{PORT}')
+    app.run(host=BIND, port=PORT, debug=False)
 
 
 if __name__ == "__main__":

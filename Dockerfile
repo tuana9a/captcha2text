@@ -4,14 +4,16 @@ FROM python:3.8-slim-buster
 
 WORKDIR /app
 
-COPY requirements.txt requirements.txt
+RUN python3 -m venv .venv
 
-RUN pip3 install -r requirements.txt
+COPY requirements.txt .
 
-COPY weights.yaml weights.pth /app/
+RUN . .venv/bin/activate && pip3 install -r requirements.txt
 
-COPY templates/ /app/templates/
+COPY weights/ weights/
 
-COPY app.py configs.py ocr.py /app/
+COPY templates/ templates/
 
-CMD [ "python3", "app.py"]
+COPY app.py .
+
+CMD . .venv/bin/activate && gunicorn -w 4 -b $BIND:$PORT app:app
