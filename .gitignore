@@ -129,5 +129,5 @@ dmypy.json
 .pyre/
 
 # @tuana9a
-weights.pth
+weights/
 *.local*

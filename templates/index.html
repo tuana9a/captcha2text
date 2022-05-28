@@ -17,10 +17,6 @@
         .padding-10 {
             padding: 10px;
         }
-
-        .border-1-black {
-            border: 1px solid black;
-        }
     </style>
 </head>
 
@@ -32,10 +28,9 @@
         <p><img src="https://avatars.dicebear.com/api/identicon/img.svg" alt="Preview Image" id="img"></p>
     </div>
     <div class="flex-center">
-        <h2>predict</h2>
-    </div>
-    <div class="flex-center">
-        <h2 class="padding-10 border-1-black" id="predict"></h2>
+        <h2>predict:</h2>
+        <h2 class="padding-10 border-1-black" id="predict">00000</h2>
+        <h2>👌</h2>
     </div>
     <script>
         const getById = (id) => document.getElementById(id);
@@ -66,7 +61,7 @@
                 method: "POST",
                 body: formData,
             });
-            
+
             const responseText = await response.text();
             predictElement.innerText = responseText;
         });
