@@ -2,10 +2,13 @@ import io
 import os
 import sys
 import dotenv
-import logging
-import datetime
-import werkzeug
 import yaml
+import werkzeug
+
+from PIL import Image
+from flask import Flask, request, render_template
+from vietocr.tool.predictor import Predictor
+from vietocr.tool.config import Cfg
 
 dotenv.load_dotenv(dotenv.find_dotenv())
 
@@ -13,11 +16,15 @@ PORT = os.getenv("PORT") or 8080
 BIND = os.getenv("BIND") or "0.0.0.0"
 DEVICE = os.getenv("DEVICE") or "cpu"
 SECRET = os.getenv("SECRET")
+ALLOWED_EXTENSIONS = ["png", "jpg", "jpeg"]
+MAX_UPLOAD_SIZE = 5 * 1024 * 1024  # 5mb
 
-from PIL import Image
-from flask import Flask, request, render_template
-from vietocr.tool.config import Cfg
-from vietocr.tool.predictor import Predictor
+predictor_config = Cfg({})
+
+
+def is_allowed_extension(filename):
+    return "." in filename and filename.rsplit(".", 1)[1].lower() in ALLOWED_EXTENSIONS
+
 
 with open("./weights/config.yaml") as f:
     predictor_config = Cfg(yaml.safe_load(f))
@@ -25,14 +32,7 @@ with open("./weights/config.yaml") as f:
     predictor = Predictor(predictor_config)
 
 app = Flask(__name__, instance_relative_config=True)
-app.config.from_mapping(MAX_CONTENT_LENGTH=5 * 1024 * 1024)
-werkzeug_logger = logging.getLogger("werkzeug")
-werkzeug_logger.setLevel(logging.ERROR)
-allowed_extensions = ["png", "jpg", "jpeg"]
-
-
-def is_allowed_extension(filename):
-    return "." in filename and filename.rsplit(".", 1)[1].lower() in allowed_extensions
+app.config.from_mapping(MAX_CONTENT_LENGTH=MAX_UPLOAD_SIZE)
 
 
 @app.route("/", methods=["GET"])
@@ -41,10 +41,10 @@ def index():
 
 
 @app.route("/", methods=["POST"])
-def upload():
+def upload_image():
     # check file exist
     if "file" not in request.files:
-        return "file not exist in request"
+        return "file is not exist in request"
     # get the file
     file = request.files["file"]
     if not file:
@@ -59,15 +59,29 @@ def upload():
         image = Image.open(io.BytesIO(buffers))
         result = predictor.predict(img=image)
         return result
-    except:
-        pattern = "%Y-%m-%d %H:%M:%S" + " error when handle image"
-        now = datetime.datetime.now().strftime(pattern)
-        print(str(now))
+    except Exception as err:
+        app.logger.error(f"{upload_image.__name__}(): {err}")
+        return "error"
+
+
+@app.route("/change_device", methods=["GET"])
+def change_device():
+    global predictor
+    device = request.args.get("device", "cpu")
+    secret = request.headers.get("secret")
+    try:
+        if secret != SECRET:
+            return "secret is not correct"
+        predictor_config["device"] = device
+        predictor = Predictor(predictor_config)
+        return device
+    except Exception as err:
+        app.logger.error(f"{change_device.__name__}(): {err}")
         return "error"
 
 
 def main():
-    print(f' * Listen http://{BIND}:{PORT}')
+    app.logger.info(f" * Listen http://{BIND}:{PORT}")
     app.run(host=BIND, port=PORT, debug=False)
 
 

@@ -17,12 +17,16 @@
         .padding-10 {
             padding: 10px;
         }
+
+        .border-1px-solid-black {
+            border: 1px solid black;
+        }
     </style>
 </head>
 
 <body>
     <div class="flex-center">
-        <p><input class="padding-10 border-1-black" type="file" name="file" id="file" accept="image/*"></p>
+        <p class="border-1px-solid-black"><input class="padding-10 border-1-black" type="file" name="file" id="file" accept="image/*"></p>
     </div>
     <div class="flex-center">
         <p><img src="https://avatars.dicebear.com/api/identicon/img.svg" alt="Preview Image" id="img"></p>
@@ -30,7 +34,6 @@
     <div class="flex-center">
         <h2>predict:</h2>
         <h2 class="padding-10 border-1-black" id="predict">00000</h2>
-        <h2>👌</h2>
     </div>
     <script>
         const getById = (id) => document.getElementById(id);
