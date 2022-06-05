@@ -12,8 +12,8 @@ RUN . .venv/bin/activate && pip3 install -r requirements.txt
 
 COPY weights/ weights/
 
-COPY templates/ templates/
-
 COPY app.py .
+
+COPY templates/ templates/
 
 CMD . .venv/bin/activate && python app.py

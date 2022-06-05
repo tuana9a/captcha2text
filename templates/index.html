@@ -58,6 +58,7 @@
 
             imgElement.src = objUrl;
             objectUrls.push(objUrl);
+            predictElement.innerText = "predicting...";
 
             formData.append("file", files[0]);
             const response = await fetch("/", {

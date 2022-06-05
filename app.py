@@ -4,6 +4,8 @@ import sys
 import dotenv
 import yaml
 import werkzeug
+import traceback
+import torch
 
 from PIL import Image
 from flask import Flask, request, render_template
@@ -18,18 +20,45 @@ DEVICE = os.getenv("DEVICE") or "cpu"
 SECRET = os.getenv("SECRET")
 ALLOWED_EXTENSIONS = ["png", "jpg", "jpeg"]
 MAX_UPLOAD_SIZE = 5 * 1024 * 1024  # 5mb
+SUPPORTED_DEVICES = ["cpu", "cuda", "cuda:0", "xpu", "mkldnn",
+                     "opengl", "opencl", "ideep", "hip", "msnpu", "xla", "vulkan"]
+CUDA_DEVICES = ["cuda", "cuda:0"]
 
-predictor_config = Cfg({})
+
+class PredictorWrapper:
+    def __init__(self) -> None:
+        self.cfg = None
+        self.predictor = None
+
+    def predict(self, img) -> str:
+        return self.predictor.predict(img)
+
+    def load(self):
+        self.predictor = Predictor(self.cfg)
+        return self.predictor
+
+    def set_cfg(self, cfg: Cfg):
+        self.cfg = cfg
+
+    def change_device(self, device: str):
+        self.cfg["device"] = device
+
+
+predictor = PredictorWrapper()
 
 
 def is_allowed_extension(filename):
     return "." in filename and filename.rsplit(".", 1)[1].lower() in ALLOWED_EXTENSIONS
 
 
+def is_allowed_device(device):
+    return device in SUPPORTED_DEVICES
+
+
 with open("./weights/config.yaml") as f:
-    predictor_config = Cfg(yaml.safe_load(f))
-    predictor_config["device"] = DEVICE
-    predictor = Predictor(predictor_config)
+    predictor.set_cfg(Cfg(yaml.safe_load(f)))
+    predictor.change_device(DEVICE)
+    predictor.load()
 
 app = Flask(__name__, instance_relative_config=True)
 app.config.from_mapping(MAX_CONTENT_LENGTH=MAX_UPLOAD_SIZE)
@@ -64,19 +93,29 @@ def upload_image():
         return "error"
 
 
-@app.route("/change_device", methods=["GET"])
+@app.route("/change_device", methods=["POST"])
 def change_device():
-    global predictor
-    device = request.args.get("device", "cpu")
-    secret = request.headers.get("secret")
     try:
+        body = request.get_json()
+        device = body.get("device")
+        if not is_allowed_device(device):
+            return "device is not allowed"
+        if device in CUDA_DEVICES:
+            if not torch.cuda.is_available():
+                return "cuda device is not available"
+        secret = body.get("secret")
         if secret != SECRET:
             return "secret is not correct"
-        predictor_config["device"] = device
-        predictor = Predictor(predictor_config)
+        predictor.change_device(device)
+        predictor.load()
         return device
+    except RuntimeError as err:
+        app.logger.error(
+            f"{change_device.__name__}(): {traceback.format_exc()}")
+        return "error"
     except Exception as err:
-        app.logger.error(f"{change_device.__name__}(): {err}")
+        app.logger.error(
+            f"{change_device.__name__}(): {traceback.format_exc()}")
         return "error"
 
 
